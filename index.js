@@ -34,6 +34,14 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/noticeboard', noticeboardRoutes);
 
+
+
+// Warden Routes
+app.use('/api/warden', require('./warden/routes'));
+
+
+// First route
+
 app.get('/', (req, res) => res.send('BWF Server running...'));
 
 app.listen(PORT, () => {

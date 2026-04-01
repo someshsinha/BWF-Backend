@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { login, refreshToken, logout } = require('./controller');
-
-const authenticateToken = require('./middleware');
+console.log({ login, refreshToken, logout });
+const { authenticateToken } = require('./middleware');
 
 router.post('/login', login);
 router.post('/refresh', refreshToken);

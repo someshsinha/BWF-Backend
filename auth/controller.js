@@ -23,6 +23,7 @@
 // access protected resources, effectively logging the user out of all sessions.
 
 const { isValidUser } = require('./service')
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const bcrypt = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require('./service');

@@ -1,5 +1,6 @@
 const Student = require("../models/Student");
 const { isValidUser } = require("../../auth/service");
+
 const { validateStudentUpdate } = require("./service");
 
 async function getStudent(req, res) {
