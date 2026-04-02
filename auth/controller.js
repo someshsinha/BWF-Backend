@@ -27,7 +27,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const bcrypt = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require('./service');
-const jwt = require("jsonwebtoken");
+
 
 async function login(req, res) {
     try {
