@@ -1,4 +1,4 @@
-const Complaint = require("../models/complaint");
+const Complaint = require("../models/complaints");
 
 // CREATE
 async function createComplaint(auth_id, data) {
