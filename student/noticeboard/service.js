@@ -1,14 +1,9 @@
-const Notice = require('../models/Notice');
-const NoticeInteraction = require('../models/NoticeInteraction');
+const Notice = require('../models/notice');
+const NoticeInteraction = require('../models/noticeInteraction');
 
-// Fetches paginated notices and merges in the student's read/dismissed state.
-// category filter is optional. Dismissed notices are excluded by default.
-//
-// Why merge here instead of a DB join: MongoDB $lookup on per-student interactions
-// gets expensive fast. This approach — fetch notices, then fetch only that
-// student's interactions for those notice IDs — is two lightweight queries
-// instead of one heavy aggregation. Better for low-bandwidth too since
-// response payload stays small.
+// Fetches paginated notices and merges this student's read/dismissed state in.
+// Uses two simple queries instead of a $lookup aggregation — easier to reason
+// about and keeps response payload small.
 async function getNoticesForStudent(auth_id, { category, page, limit }) {
   const query = { isActive: true };
   if (category && category !== 'all') {
@@ -27,55 +22,53 @@ async function getNoticesForStudent(auth_id, { category, page, limit }) {
   ]);
 
   if (!notices.length) {
-    return { notices: [], total, page, limit };
+    return { notices: [], total };
   }
 
-  // Fetch this student's interactions for exactly these notices
+  // Fetch only this student's interactions for exactly these notice IDs
   const noticeIds = notices.map(n => n._id);
   const interactions = await NoticeInteraction.find({
     auth_id,
     noticeId: { $in: noticeIds }
   }).lean();
 
-  // Build a lookup map for O(1) access
+  // Build a lookup map for O(1) merge
   const interactionMap = {};
   interactions.forEach(i => {
     interactionMap[i.noticeId.toString()] = i;
   });
 
-  // Merge interaction state into each notice, filter out dismissed
+  // Merge state into each notice, then strip out dismissed ones
   const enriched = notices
     .map(notice => {
       const interaction = interactionMap[notice._id.toString()] || {};
       return {
         ...notice,
-        isRead: interaction.isRead || false,
+        isRead:      interaction.isRead      || false,
         isDismissed: interaction.isDismissed || false
       };
     })
     .filter(n => !n.isDismissed);
 
-  return { notices: enriched, total, page, limit };
+  return { notices: enriched, total };
 }
 
-// Count of unread, non-dismissed notices for the bell badge
+// How many active notices the student hasn't read or dismissed.
+// This drives the bell badge number.
 async function getUnreadCount(auth_id) {
   const allActive = await Notice.find({ isActive: true }, '_id').lean();
   const allIds = allActive.map(n => n._id);
 
-  const readOrDismissed = await NoticeInteraction.find({
+  if (!allIds.length) return 0;
+
+  const interacted = await NoticeInteraction.find({
     auth_id,
     noticeId: { $in: allIds },
     $or: [{ isRead: true }, { isDismissed: true }]
   }, 'noticeId').lean();
 
-  const interactedIds = new Set(readOrDismissed.map(i => i.noticeId.toString()));
-  const unreadCount = allIds.filter(id => !interactedIds.has(id.toString())).length;
-
-  return unreadCount;
+  const interactedSet = new Set(interacted.map(i => i.noticeId.toString()));
+  return allIds.filter(id => !interactedSet.has(id.toString())).length;
 }
 
-module.exports = {
-  getNoticesForStudent,
-  getUnreadCount
-};
+module.exports = { getNoticesForStudent, getUnreadCount };

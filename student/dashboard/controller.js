@@ -1,28 +1,26 @@
-const MoodLog = require('../models/MoodLog');
-const MentorNote = require('../models/MentorNote');
+const MoodLog = require('../models/moodLog');
+const MentorNote = require('../models/mentorNote');
 const {
+  getTodayString,
   getTodaySchedule,
   getRecentAssignments,
-  getLatestMentorNote,
-  getDailyInspiration,
-  getTodayString
+  getLatestMentorNote
 } = require('./service');
 
-// GET /api/dashboard/:auth_id
-// Single endpoint — returns everything the dashboard page needs in one shot.
-// Rationale: under limited connectivity, one round trip beats five.
-// All sub-queries run in parallel via Promise.all.
+// GET /api/student/dashboard/:auth_id
+// Returns everything the Home page needs in a single request.
+// All DB queries run in parallel — one round trip, not five.
+// Inspiration is handled entirely on the frontend (you already have the array there).
 async function getDashboard(req, res) {
   const { auth_id } = req.params;
 
   try {
     const today = getTodayString();
 
-    const [schedule, assignments, mentorNote, inspiration, todayMood] = await Promise.all([
+    const [schedule, assignments, mentorNote, todayMood] = await Promise.all([
       getTodaySchedule(auth_id),
       getRecentAssignments(auth_id),
       getLatestMentorNote(auth_id),
-      getDailyInspiration(),
       MoodLog.findOne({ auth_id, date: today }).lean()
     ]);
 
@@ -30,8 +28,7 @@ async function getDashboard(req, res) {
       today,
       schedule,
       assignments,
-      mentorNote,
-      inspiration,
+      mentorNote: mentorNote || null,
       todayMood: todayMood ? todayMood.mood : null
     });
 
@@ -41,16 +38,18 @@ async function getDashboard(req, res) {
   }
 }
 
-// POST /api/dashboard/:auth_id/mood
+// POST /api/student/dashboard/:auth_id/mood
 // Student taps Happy / Okay / Need Help.
-// Upserts so tapping again today updates instead of duplicating.
+// Upserts on (auth_id + date) — tapping again today just updates, no duplicate.
 async function logMood(req, res) {
   const { auth_id } = req.params;
   const { mood } = req.body;
 
   const validMoods = ['happy', 'okay', 'need_help'];
   if (!mood || !validMoods.includes(mood)) {
-    return res.status(400).json({ message: 'Invalid mood. Must be happy, okay, or need_help' });
+    return res.status(400).json({
+      message: 'mood must be one of: happy, okay, need_help'
+    });
   }
 
   try {
@@ -58,7 +57,7 @@ async function logMood(req, res) {
 
     const log = await MoodLog.findOneAndUpdate(
       { auth_id, date: today },
-      { mood, last_modified: new Date() },
+      { mood },
       { upsert: true, new: true }
     );
 
@@ -70,7 +69,7 @@ async function logMood(req, res) {
   }
 }
 
-// POST /api/dashboard/:auth_id/mentor-note/:noteId/thanks
+// POST /api/student/dashboard/:auth_id/mentor-note/:noteId/thanks
 // Student taps "Say thanks" on the mentor note card.
 async function thankMentor(req, res) {
   const { auth_id, noteId } = req.params;
@@ -83,7 +82,6 @@ async function thankMentor(req, res) {
     }
 
     note.thanked = true;
-    note.last_modified = new Date();
     await note.save();
 
     return res.status(200).json({ message: 'Thanks recorded' });
@@ -94,8 +92,4 @@ async function thankMentor(req, res) {
   }
 }
 
-module.exports = {
-  getDashboard,
-  logMood,
-  thankMentor
-};
+module.exports = { getDashboard, logMood, thankMentor };

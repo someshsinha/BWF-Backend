@@ -1,47 +1,36 @@
 const mongoose = require('mongoose');
 
-// Tracks per-student interaction with a notice: read and dismissed.
-// Kept separate from Notice to avoid bloating notice documents.
-// One document per (auth_id, notice_id) pair.
-//
-// This is intentionally lightweight — only two booleans + timestamps.
-// The mobile app can batch-sync these in a single request after coming online.
+// Tracks per-student read/dismissed state for notices.
+// Kept as its own collection instead of embedding student arrays inside Notice —
+// embedding would make every notice document grow with every student, which
+// hurts both query performance and response payload size.
 
-const noticeInteractionSchema = new mongoose.Schema({
-  auth_id: {
-    type: String,
-    required: true,
-    index: true
+const noticeInteractionSchema = new mongoose.Schema(
+  {
+    auth_id: {
+      type: String,
+      required: true,
+      index: true
+    },
+    noticeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Notice',
+      required: true
+    },
+    isRead: {
+      type: Boolean,
+      default: false
+    },
+    // dismissed = student hit X, notice is hidden from their board
+    isDismissed: {
+      type: Boolean,
+      default: false
+    }
   },
+  { timestamps: true }
+);
 
-  noticeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Notice',
-    required: true
-  },
-
-  isRead: {
-    type: Boolean,
-    default: false
-  },
-
-  isDismissed: {
-    type: Boolean,
-    default: false
-  },
-
-  last_modified: {
-    type: Date,
-    default: Date.now
-  },
-
-  is_synced: {
-    type: Boolean,
-    default: true
-  }
-
-}, { timestamps: true });
-
+// One interaction document per student per notice — no duplicates
 noticeInteractionSchema.index({ auth_id: 1, noticeId: 1 }, { unique: true });
 
 module.exports = mongoose.model('NoticeInteraction', noticeInteractionSchema);

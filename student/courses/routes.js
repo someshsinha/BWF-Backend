@@ -1,18 +1,23 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   getTodayCourses,
   submitTask,
   markUnderReview,
   verifyTask,
-  rejectTask,
-  incrementSession
+  rejectTask
 } = require('./controller');
-const { authenticateToken, authorizeRoles, authorizeSelfOrAdmin } = require('../auth/middleware');
 
-// ── Student routes ─────────────────────────────────────────────────────────
+const {
+  authenticateToken,
+  authorizeRoles,
+  authorizeSelfOrAdmin
+} = require('../../auth/middleware');
 
-// Get today's full course view (tasks grouped by status + session progress)
+// ── Student ───────────────────────────────────────────────────────────────────
+
+// Get today's tasks grouped by status + session progress
 router.get(
   '/:auth_id',
   authenticateToken,
@@ -21,7 +26,7 @@ router.get(
   getTodayCourses
 );
 
-// Student submits a task ("I'm Done!")
+// Student marks a task as done
 router.post(
   '/:auth_id/tasks/:taskId/submit',
   authenticateToken,
@@ -30,19 +35,10 @@ router.post(
   submitTask
 );
 
-// Increment today's device session counter
-router.post(
-  '/:auth_id/session/increment',
-  authenticateToken,
-  authorizeRoles('student'),
-  authorizeSelfOrAdmin,
-  incrementSession
-);
+// ── Warden / Admin ────────────────────────────────────────────────────────────
+// Note: no authorizeSelfOrAdmin here — wardens act on any student's tasks
 
-// ── Warden / Admin routes ──────────────────────────────────────────────────
-// These don't need authorizeSelfOrAdmin — wardens act on any student's tasks
-
-// Warden picks up submission for review
+// Warden picks up task for review
 router.put(
   '/tasks/:taskId/review',
   authenticateToken,

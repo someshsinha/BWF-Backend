@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "BWF Backend system",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
-  },
+"scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js",
+  "lint": "node --check student/dashboard/controller.js && node --check index.js",
+  "test": "echo \"Error: no test specified\" && exit 1"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BWF-interns/BWF-Backend.git"

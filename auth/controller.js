@@ -25,6 +25,7 @@
 const { isValidUser } = require('./service')
 const User = require('../models/User');
 const bcrypt = require("bcrypt");
+const jwt = require('jsonwebtoken');
 const { generateAccessToken, generateRefreshToken } = require('./service');
 
 async function login(req, res) {

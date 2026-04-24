@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   getNotices,
+  getUnreadBadge,
   markRead,
   markAllRead,
-  dismissNotice,
-  getUnreadBadge
+  dismissNotice
 } = require('./controller');
-const { authenticateToken, authorizeRoles, authorizeSelfOrAdmin } = require('../auth/middleware');
 
-// All routes require auth. Students only see their own notice state.
+const {
+  authenticateToken,
+  authorizeRoles,
+  authorizeSelfOrAdmin
+} = require('../../auth/middleware');
 
+// Paginated notice list with per-student read/dismiss state merged in
 router.get(
   '/:auth_id',
   authenticateToken,
@@ -19,6 +24,7 @@ router.get(
   getNotices
 );
 
+// Bell badge count only — lightweight, no notice data
 router.get(
   '/:auth_id/unread-count',
   authenticateToken,
@@ -27,6 +33,7 @@ router.get(
   getUnreadBadge
 );
 
+// Student opens/reads a notice
 router.post(
   '/:auth_id/notices/:noticeId/read',
   authenticateToken,
@@ -35,6 +42,7 @@ router.post(
   markRead
 );
 
+// "Mark all read" button
 router.post(
   '/:auth_id/read-all',
   authenticateToken,
@@ -43,7 +51,7 @@ router.post(
   markAllRead
 );
 
-// DELETE maps to the X button — dismisses a notice from the student's view
+// X button on a notice card
 router.delete(
   '/:auth_id/notices/:noticeId',
   authenticateToken,

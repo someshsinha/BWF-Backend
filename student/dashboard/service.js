@@ -1,16 +1,14 @@
-const Schedule = require('../models/Schedule');
-const Assignment = require('../models/Assignment');
-const MentorNote = require('../models/MentorNote');
-const Inspiration = require('../models/Inspiration');
+const Schedule = require('../models/schedule');
+const Assignment = require('../models/assignment');
+const MentorNote = require('../models/mentorNote');
 
-// Returns "YYYY-MM-DD" for today in local server time.
-// Used consistently across dashboard queries so everything is date-aligned.
+// Returns today's date as "YYYY-MM-DD" string.
+// Used consistently across all queries so everything is date-aligned.
 function getTodayString() {
   return new Date().toISOString().split('T')[0];
 }
 
-// Today's schedule sorted by start time.
-// Limited to 10 — the dashboard card doesn't paginate.
+// Today's schedule for this student, sorted by start time, capped at 10.
 async function getTodaySchedule(auth_id) {
   const today = getTodayString();
   return Schedule.find({ auth_id, date: today })
@@ -19,8 +17,8 @@ async function getTodaySchedule(auth_id) {
     .lean();
 }
 
-// Recent assignments — up to 5, sorted by due date ascending so most urgent is first.
-// The dashboard only shows 2, but sending 5 gives the frontend flexibility.
+// Up to 5 assignments sorted by soonest due date — dashboard shows 2 but
+// sending 5 gives frontend flexibility without another request.
 async function getRecentAssignments(auth_id) {
   return Assignment.find({ auth_id })
     .sort({ dueDate: 1 })
@@ -35,22 +33,9 @@ async function getLatestMentorNote(auth_id) {
     .lean();
 }
 
-// Deterministic daily inspiration — no per-student state, offline-safe.
-// Rotates through the active quote pool using day-of-year.
-async function getDailyInspiration() {
-  const quotes = await Inspiration.find({ isActive: true }).lean();
-  if (!quotes.length) return null;
-
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000
-  );
-  return quotes[dayOfYear % quotes.length];
-}
-
 module.exports = {
+  getTodayString,
   getTodaySchedule,
   getRecentAssignments,
-  getLatestMentorNote,
-  getDailyInspiration,
-  getTodayString
+  getLatestMentorNote
 };

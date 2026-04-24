@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
+
 const { getDashboard, logMood, thankMentor } = require('./controller');
-const { authenticateToken, authorizeRoles, authorizeSelfOrAdmin } = require('../auth/middleware');
+const {
+  authenticateToken,
+  authorizeRoles,
+  authorizeSelfOrAdmin
+} = require('../../auth/middleware');
 
-// All dashboard routes require a valid token and student/admin role.
-// authorizeSelfOrAdmin ensures a student can only see their own dashboard.
-
+// Full dashboard data for Home page
 router.get(
   '/:auth_id',
   authenticateToken,
@@ -14,6 +17,7 @@ router.get(
   getDashboard
 );
 
+// Student logs their mood for today
 router.post(
   '/:auth_id/mood',
   authenticateToken,
@@ -22,6 +26,7 @@ router.post(
   logMood
 );
 
+// Student taps "Say thanks" on mentor note
 router.post(
   '/:auth_id/mentor-note/:noteId/thanks',
   authenticateToken,
